@@ -101,9 +101,63 @@ class CalculatorApp(ctk.CTk):
         self.entry.insert(0, text)
 
     def calculate(self):
-        # 暂未实现计算功能
-        # 不要使用eval() 
-        pass
+        if not self.current_value:
+            self.update_display("Expression error")
+            self.current_value = ""
+            return
+        
+        # 处理数字
+        parts = [] # 储存解析内容
+        tmp = "" 
+        for char in self.current_value:
+            if char in "*/":
+                if not tmp:
+                    self.update_display("Format error")
+                    self.current_value = ""
+                    return
+                parts.append(float(tmp)) # 将 * 或 / 前的数字存入parts
+                parts.append(char)
+                tmp = ""
+            else:
+                if char not in "0123456789.":
+                    self.update_display("Format error")
+                    return
+                tmp += char
+
+        if not tmp: 
+            self.update_display("Format error")
+            self.current_value = ""
+            return
+        parts.append(float(tmp))
+        
+        # 防止 1* 或 1/ 之类的情况
+        if len(parts) < 3 or len(parts) % 2 == 0:
+            self.update_display("Format error")
+            self.current_value = ""
+            return
+        
+        # 处理计算
+        result = parts[0]
+        for index in range(1, len(parts), 2): # 两个两个读取
+            operator = parts[index]
+            next_num = parts[index + 1]
+
+            # 添加操作
+            if operator == "*":
+                result *= next_num
+            elif operator == "/":
+                if next_num == 0:
+                    self.update_display("Calculation error")
+                    return
+                result /= next_num
+
+        if result.is_integer():
+            self.current_value = str(int(result))
+        else:
+            self.current_value = str(result)
+            
+        # 更新显示
+        self.update_display(self.current_value)
 
 if __name__ == "__main__":
     app = CalculatorApp()
