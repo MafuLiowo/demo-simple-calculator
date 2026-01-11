@@ -102,7 +102,7 @@ class CalculatorApp(ctk.CTk):
 
     def calculate(self):
         # 暂未实现计算功能
-        # 不要使用eval()
+        # 不要使用eval() 
         pass
 
 if __name__ == "__main__":
