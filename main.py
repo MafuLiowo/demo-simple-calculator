@@ -102,6 +102,8 @@ class CalculatorApp(ctk.CTk):
 
     def calculate(self):
         if not self.current_value:
+            self.update_display("Expression error")
+            self.current_value = ""
             return
         
         # 处理数字
@@ -109,18 +111,29 @@ class CalculatorApp(ctk.CTk):
         tmp = "" 
         for char in self.current_value:
             if char in "*/":
-                if tmp:
-                    parts.append(float(tmp)) # 将 * 或 / 前的数字存入parts
-                    parts.append(char)
-                    tmp = ""
+                if not tmp:
+                    self.update_display("Format error")
+                    self.current_value = ""
+                    return
+                parts.append(float(tmp)) # 将 * 或 / 前的数字存入parts
+                parts.append(char)
+                tmp = ""
             else:
+                if char not in "0123456789.":
+                    self.update_display("Format error")
+                    return
                 tmp += char
 
-        if tmp:
-            parts.append(float(tmp)) # 将最后的数字存入
+        if not tmp: 
+            self.update_display("Format error")
+            self.current_value = ""
+            return
+        parts.append(float(tmp))
         
         # 防止 1* 或 1/ 之类的情况
-        if len(parts) < 3:
+        if len(parts) < 3 or len(parts) % 2 == 0:
+            self.update_display("Format error")
+            self.current_value = ""
             return
         
         # 处理计算
@@ -134,7 +147,7 @@ class CalculatorApp(ctk.CTk):
                 result *= next_num
             elif operator == "/":
                 if next_num == 0:
-                    self.update_display("Error")
+                    self.update_display("Calculation error")
                     return
                 result /= next_num
 
