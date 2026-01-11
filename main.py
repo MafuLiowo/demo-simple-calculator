@@ -40,7 +40,7 @@ class CalculatorApp(ctk.CTk):
 
         # 按钮配置表 (文字, 行, 列, 颜色类型)
         buttons = [
-            ('C', 0, 0, "danger"), ('/', 0, 3, "action"),
+            ('C', 0, 0, "danger"), ('Backspace', 0, 1, "action",2), ('/', 0, 3, "action"),
             ('7', 1, 0, "normal"), ('8', 1, 1, "normal"), ('9', 1, 2, "normal"), ('*', 1, 3, "action"),
             ('4', 2, 0, "normal"), ('5', 2, 1, "normal"), ('6', 2, 2, "normal"), ('-', 2, 3, "action"),
             ('1', 3, 0, "normal"), ('2', 3, 1, "normal"), ('3', 3, 2, "normal"), ('+', 3, 3, "action"),
@@ -86,6 +86,9 @@ class CalculatorApp(ctk.CTk):
             self.update_display("0")
         elif char == '=':
             self.calculate()
+        elif char == 'Backspace':
+            self.current_value = self.current_value[:-1]
+            self.update_display(self.current_value if self.current_value else "0")
         else:
             # 简单的输入限制（防止多个小数点等）
             if char in "+-*/" and (not self.current_value or self.current_value[-1] in "+-*/"):
@@ -98,18 +101,9 @@ class CalculatorApp(ctk.CTk):
         self.entry.insert(0, text)
 
     def calculate(self):
-        try:
-            # 安全提示：在实际信安工具中，建议使用解析器代替 eval
-            # 这里为了演示核心逻辑，先使用 eval，但加入了错误处理
-            result = str(eval(self.current_value))
-            self.update_display(result)
-            self.current_value = result
-        except ZeroDivisionError:
-            messagebox.showerror("错误", "数学错误：除数不能为零")
-            self.on_button_click('C')
-        except Exception:
-            messagebox.showerror("错误", "输入非法")
-            self.on_button_click('C')
+        # 暂未实现计算功能
+        # 不要使用eval()
+        pass
 
 if __name__ == "__main__":
     app = CalculatorApp()
