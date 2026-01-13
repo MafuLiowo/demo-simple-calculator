@@ -19,8 +19,8 @@ class CalculatorModel:
             
             # 本地递归函数（不是类方法，只是函数内的局部函数）
             def eval_node(node):
-                if isinstance(node, ast.Num):
-                    return node.n
+                if isinstance(node, ast.Constant):
+                    return node.value
                 elif isinstance(node, ast.BinOp):
                     left = eval_node(node.left)
                     right = eval_node(node.right)
