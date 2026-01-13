@@ -1,25 +1,24 @@
 import customtkinter as ctk
 from tkinter import messagebox
+import re  # 引入正则模块用于分割数字和运算符
 
 # 设置全局主题
-ctk.set_appearance_mode("dark")  # 开启深色模式
-ctk.set_default_color_theme("blue") # 主题色：蓝色
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 class CalculatorApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         # --- 窗口基础设置 ---
-        self.title("简易计算器")
+        self.title("简易计算器 (无eval版)")
         self.geometry("340x480")
         self.resizable(False, False)
 
         # 运算状态存储
         self.current_value = ""
-        # self.formula = "" # 移除未使用的变量
 
         # --- 1. 显示区域 ---
-        # 使用 Frame 包裹 Entry 增加边距感
         self.display_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.display_frame.pack(padx=20, pady=(30, 10), fill="x")
 
@@ -38,7 +37,7 @@ class CalculatorApp(ctk.CTk):
         self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.button_frame.pack(padx=20, pady=10, fill="both", expand=True)
 
-        # 按钮配置表 (文字, 行, 列, 颜色类型, [跨列数])
+        # 按钮配置表
         buttons = [
             ('C', 0, 0, "danger"), ('Backspace', 0, 1, "action", 2), ('/', 0, 3, "action"),
             ('7', 1, 0, "normal"), ('8', 1, 1, "normal"), ('9', 1, 2, "normal"), ('*', 1, 3, "action"),
@@ -82,12 +81,10 @@ class CalculatorApp(ctk.CTk):
         btn.grid(row=row, column=col, columnspan=colspan, padx=5, pady=5, sticky="nsew")
 
     def on_button_click(self, char):
-        """处理按钮点击逻辑"""
-        # 如果当前显示的是错误信息，点击任何键都先清空
         if "Error" in self.entry.get() or "error" in self.entry.get():
             self.current_value = ""
             self.update_display("0")
-            if char in ["=", "C", "Backspace"]: # 如果点的是功能键，直接返回
+            if char in ["=", "C", "Backspace"]:
                 return
 
         if char == 'C':
@@ -99,14 +96,11 @@ class CalculatorApp(ctk.CTk):
             self.current_value = self.current_value[:-1]
             self.update_display(self.current_value if self.current_value else "0")
         else:
-            # 简单的输入限制
             if char in "+-*/":
-                # 防止开头就是运算符 (除了负号，但这里简化处理)
                 if not self.current_value:
                     return
-                # 防止连续输入运算符 (如 1++2)
                 if self.current_value[-1] in "+-*/":
-                    return # 或者可以替换：self.current_value = self.current_value[:-1] + char
+                    return 
             
             self.current_value += str(char)
             self.update_display(self.current_value)
@@ -115,22 +109,81 @@ class CalculatorApp(ctk.CTk):
         self.entry.delete(0, "end")
         self.entry.insert(0, text)
 
+    def safe_parse_and_compute(self, expression):
+        """
+        核心算法逻辑：
+        1. 使用正则将字符串拆分为 token (数字和运算符)。
+        2. 第一轮扫描：处理高优先级的乘法 (*) 和除法 (/)。
+        3. 第二轮扫描：处理低优先级的加法 (+) 和减法 (-)。
+        """
+        # 正则表达式拆分：匹配 (数字+可选小数点) 或者 (运算符)
+        # 例如 "12+3.5*2" -> ['12', '+', '3.5', '*', '2']
+        tokens_raw = re.findall(r'\d+\.?\d*|[-+*/]', expression)
+        
+        # 将数字字符串转为 float，运算符保持字符串
+        tokens = []
+        for t in tokens_raw:
+            if t in "+-*/":
+                tokens.append(t)
+            else:
+                tokens.append(float(t))
+
+        if not tokens:
+            return 0.0
+
+        # --- 第一轮：处理乘除 ---
+        # 我们创建一个新的列表来存储处理后的结果
+        stack = []
+        i = 0
+        while i < len(tokens):
+            token = tokens[i]
+            
+            # 如果当前是乘除，因为我们是顺序读取，所以操作数是 stack的最后一个元素 和 tokens的下一个元素
+            if token == '*' or token == '/':
+                if not stack: raise ValueError("Operator Error") # 防止 *3 这种情况
+                
+                prev_val = stack.pop()    # 取出前一个数字
+                next_val = tokens[i+1]    # 取出后一个数字
+                
+                if token == '*':
+                    res = prev_val * next_val
+                else:
+                    if next_val == 0: raise ZeroDivisionError
+                    res = prev_val / next_val
+                
+                stack.append(res) # 将计算结果放回栈中
+                i += 2            # 跳过 运算符 和 下一个数字
+            else:
+                # 如果是数字或加减，暂时先入栈，留给第二轮处理
+                stack.append(token)
+                i += 1
+
+        # --- 第二轮：处理加减 ---
+        # 此时 stack 里只剩下数字和 + -，例如 [1.0, '+', 5.0, '-', 2.0]
+        result = stack[0]
+        i = 1
+        while i < len(stack):
+            op = stack[i]
+            val = stack[i+1]
+            
+            if op == '+':
+                result += val
+            elif op == '-':
+                result -= val
+            i += 2
+            
+        return result
+
     def calculate(self):
-        """
-        修改后的计算函数：
-        使用 eval() 自动处理加减乘除和运算优先级。
-        """
         if not self.current_value:
             return
         
         try:
-            # eval 会自动计算字符串表达式，例如 "1+2*3" -> 7
-            # 这里的 logic 会自动支持 + 和 -，不仅仅是 * 和 /
-            result = eval(self.current_value)
+            # 替换 eval，调用自定义的安全计算函数
+            result = self.safe_parse_and_compute(self.current_value)
             
-            # 处理结果显示：如果是整数去掉 .0
+            # 结果格式化逻辑
             if isinstance(result, float):
-                # 处理浮点数精度问题（可选，防止 1.0000000002 这种情况）
                 result = round(result, 10)
                 if result.is_integer():
                     self.current_value = str(int(result))
@@ -144,10 +197,8 @@ class CalculatorApp(ctk.CTk):
         except ZeroDivisionError:
             self.current_value = ""
             self.update_display("Error: Div 0")
-        except SyntaxError:
-            self.current_value = ""
-            self.update_display("Error: Syntax")
         except Exception as e:
+            # print(f"Debug Error: {e}") # 调试用
             self.current_value = ""
             self.update_display("Error")
 
