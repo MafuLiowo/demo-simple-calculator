@@ -68,7 +68,7 @@ class CalculatorController:
                 return
 
         # 2. 程序员模式禁用特定字符
-        if self.mode == "Programmer" and char in [".", "(", ")"]:
+        if self.mode == "Programmer" and char in ["."]:
             return
 
         # 3. 将字符追加到输入框（如果当前为 "0" 则替换）
