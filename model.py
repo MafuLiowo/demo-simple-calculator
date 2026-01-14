@@ -21,16 +21,8 @@ class CalculatorModel:
         """
         对外主接口：执行计算并返回 (显示文本, 辅助文本)
         """
-        if expression == '233': # 彩蛋
-            return "哈哈哈", ""
-            
         if not expression:
             return "", ""
-
-        # === 【新增逻辑】 检测是否包含逗号，如果包含则进行排序 ===
-        if ',' in expression:
-            return self._handle_sort(expression, mode)
-        # ====================================================
 
         is_hex_mode = (mode == "Programmer")
 
@@ -56,47 +48,6 @@ class CalculatorModel:
         return ""
 
     # ================= 内部逻辑方法 =================
-
-    def _handle_sort(self, expression: str, mode: str) -> tuple[str, str]:
-        """【新增方法】处理数值排序逻辑"""
-        try:
-            # 1. 分割字符串并去除空白
-            parts = [p.strip() for p in expression.split(',') if p.strip()]
-            
-            is_hex = (mode == "Programmer")
-            nums = []
-
-            # 2. 将字符串转换为数字以便正确排序 (防止 "10" 排在 "2" 前面的情况)
-            for p in parts:
-                if is_hex:
-                    nums.append(int(p, 16)) # 16进制转换
-                else:
-                    # 尝试转为 int，如果是浮点数则转 float
-                    try:
-                        nums.append(int(p))
-                    except ValueError:
-                        nums.append(float(p))
-            
-            # 3. 执行排序
-            nums.sort()
-
-            # 4. 重新组合成字符串
-            result_parts = []
-            for n in nums:
-                if is_hex:
-                    result_parts.append(f"{n:X}") # 转回大写HEX
-                else:
-                    # 处理浮点数显示的 .0 (例如 33.0 -> 33)
-                    if isinstance(n, float) and n.is_integer():
-                        result_parts.append(str(int(n)))
-                    else:
-                        result_parts.append(str(n))
-            
-            return ",".join(result_parts), "Sorted" # 副标题显示状态
-
-        except Exception:
-            # 如果包含非法字符无法排序，返回错误
-            return "Error: Sort", ""
 
     def _compute(self, expression: str, is_hex: bool):
         """解析字符串并计算数值"""

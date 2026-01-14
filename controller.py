@@ -6,6 +6,47 @@ class CalculatorController:
         # 应用状态
         self.mode = "Standard" # "Standard" or "Programmer"
 
+    def _handle_sort(self, expression: str) -> tuple[str, str]:
+        """处理数值排序逻辑"""
+        try:
+            # 1. 分割字符串并去除空白
+            parts = [p.strip() for p in expression.split(',') if p.strip()]
+            
+            is_hex = (self.mode == "Programmer")
+            nums = []
+
+            # 2. 将字符串转换为数字以便正确排序 (防止 "10" 排在 "2" 前面的情况)
+            for p in parts:
+                if is_hex:
+                    nums.append(int(p, 16)) # 16进制转换
+                else:
+                    # 尝试转为 int，如果是浮点数则转 float
+                    try:
+                        nums.append(int(p))
+                    except ValueError:
+                        nums.append(float(p))
+            
+            # 3. 执行排序
+            nums.sort()
+
+            # 4. 重新组合成字符串
+            result_parts = []
+            for n in nums:
+                if is_hex:
+                    result_parts.append(f"{n:X}") # 转回大写HEX
+                else:
+                    # 处理浮点数显示的 .0 (例如 33.0 -> 33)
+                    if isinstance(n, float) and n.is_integer():
+                        result_parts.append(str(int(n)))
+                    else:
+                        result_parts.append(str(n))
+            
+            return ",".join(result_parts), "Sorted" # 副标题显示状态
+
+        except Exception:
+            # 如果包含非法字符无法排序，返回错误
+            return "Error: Sort", ""
+
     def handle_mode_change(self, new_mode_name):
         """处理模式切换"""
         self.view.update_display("0", "")
@@ -38,6 +79,18 @@ class CalculatorController:
             expr = self.view.entry.get()
             if not expr or expr == "0":
                 return
+            
+            # 处理 233 彩蛋
+            if expr == '233':
+                self.view.update_display("哈哈哈", "")
+                return
+            
+            # 处理排序逻辑（检测是否包含逗号）
+            if ',' in expr:
+                result_str, sub_label_str = self._handle_sort(expr)
+                self.view.update_display(result_str, sub_label_str)
+                return
+            
             # 调用 Model 进行计算，直接使用输入框的文本
             result_str, sub_label_str = self.model.evaluate(expr, self.mode)
             self.view.update_display(result_str, sub_label_str)
