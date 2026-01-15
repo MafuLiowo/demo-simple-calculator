@@ -5,11 +5,15 @@ class CalculatorController:
         
         # 应用状态
         self.mode = "Standard" # "Standard" or "Programmer"
+        self.last_expression = None  # 存储上一次的表达式
+        self.is_result_displayed = False  # 标记是否正在显示结果
 
 
     def handle_mode_change(self, new_mode_name):
         """处理模式切换"""
         self.view.update_display("0", "")
+        self.is_result_displayed = False
+        self.last_expression = None
         
         if new_mode_name == "标准模式":
             self.mode = "Standard"
@@ -33,6 +37,8 @@ class CalculatorController:
 
         if char == 'CLEAR':
             self.view.update_display("0", "")
+            self.is_result_displayed = False
+            self.last_expression = None
             return
 
         if char == '=':
@@ -50,11 +56,31 @@ class CalculatorController:
                 is_hex = (self.mode == "Programmer")
                 result_str, sub_label_str = self.model.sort_numbers(expr, is_hex)
                 self.view.update_display(result_str, sub_label_str)
+                self.is_result_displayed = False
+                self.last_expression = None
                 return
+            
+            # 检查是否是重复按"="（已显示结果的情况下再按"="）
+            if self.is_result_displayed and self.last_expression:
+                # 重复运算：用上一次的结果和操作数进行相同的运算
+                if self.model.last_operator and self.model.last_operand is not None:
+                    # 构造新的表达式：结果 + 运算符 + 操作数
+                    new_expr = f"{current}{self.model.last_operator}{self.model.last_operand}"
+                    result_str, sub_label_str = self.model.evaluate(new_expr, self.mode)
+                    self.view.update_display(result_str, sub_label_str)
+                    # 保持 is_result_displayed 为 True，以便继续重复运算
+                    return
             
             # 调用 Model 进行计算，直接使用输入框的文本
             result_str, sub_label_str = self.model.evaluate(expr, self.mode)
             self.view.update_display(result_str, sub_label_str)
+            
+            # 提取表达式中的最后一个运算符和操作数
+            self._extract_last_operation(expr)
+            
+            # 标记已显示结果
+            self.is_result_displayed = True
+            self.last_expression = expr
             return
 
         if char == 'Backspace':
@@ -67,6 +93,7 @@ class CalculatorController:
                 sub_text = self.model.convert_hex_preview(display_text)
 
             self.view.update_display(display_text, sub_text)
+            self.is_result_displayed = False
             return
 
         # 下面是普通字符（数字/运算符/字母）追加到输入框的逻辑
@@ -87,9 +114,29 @@ class CalculatorController:
         else:
             new_text = current + str(char)
 
+        # 重置结果显示标记（用户开始输入新内容）
+        self.is_result_displayed = False
+
         # 实时预览（仅显示十六进制转换提示，不做计算）
         sub_text = None
         if self.mode == "Programmer" and char not in "+-*/":
             sub_text = self.model.convert_hex_preview(new_text if new_text != "0" else "")
 
         self.view.update_display(new_text, sub_text)
+
+    def _extract_last_operation(self, expression: str):
+        """从表达式中提取最后一个运算符和操作数"""
+        import re
+        
+        # 使用正则表达式匹配最后一个运算符和其后的操作数
+        # 模式：(数字或小数) (运算符) (数字或小数)
+        match = re.search(r'([\d.]+)\s*([+\-*/])\s*([\d.]+)$', expression)
+        
+        if match:
+            # 提取最后的操作数和运算符
+            self.model.last_operand = float(match.group(3)) if '.' in match.group(3) else int(match.group(3))
+            self.model.last_operator = match.group(2)
+        else:
+            # 如果没有找到运算符，重置
+            self.model.last_operand = None
+            self.model.last_operator = None

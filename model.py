@@ -16,6 +16,10 @@ class CalculatorModel:
             ast.UAdd: operator.pos,
             ast.USub: operator.neg,
         }
+        # 存储最后一次的运算信息，用于重复运算
+        self.last_operand = None  # 最后一个操作数
+        self.last_operator = None  # 最后一个运算符
+        self.last_result = None  # 最后的结果
 
     def evaluate(self, expression: str, mode: str) -> tuple[str, str]:
         """
