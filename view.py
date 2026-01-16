@@ -13,7 +13,7 @@ class CalculatorView(ctk.CTk):
         # --- 1. 顶部模式切换 ---
         self.mode_segment = ctk.CTkSegmentedButton(
             self, 
-            values=["标准模式", "程序员"], 
+            values=["标准模式", "程序员", "时间"], 
             command=self.on_mode_segment_click
         )
         self.mode_segment.pack(pady=(10, 5))
@@ -93,6 +93,18 @@ class CalculatorView(ctk.CTk):
         ]
         self._create_grid(buttons, cols=6)
 
+    def setup_time_buttons(self):
+        """设置时间模式按钮"""
+        self.clear_button_frame()
+        buttons = [
+            ('CLEAR', 0, 0, "danger"), ('Backspace', 0, 1, "action", 2), ('=', 0, 3, "success"),
+            ('1', 1, 0, "normal"), ('2', 1, 1, "normal"), ('3', 1, 2, "normal"), ('h', 1, 3, "time"),
+            ('4', 2, 0, "normal"), ('5', 2, 1, "normal"), ('6', 2, 2, "normal"), ('m', 2, 3, "time"),
+            ('7', 3, 0, "normal"), ('8', 3, 1, "normal"), ('9', 3, 2, "normal"), ('.', 3, 3, "normal"),
+            ('0', 4, 0, "normal", 3)
+        ]
+        self._create_grid(buttons, cols=4)
+
     def _create_grid(self, buttons, cols):
         for i in range(cols):
             self.button_frame.grid_columnconfigure(i, weight=1)
@@ -113,17 +125,18 @@ class CalculatorView(ctk.CTk):
             "action": ("#54a0ff", "#2e86de"),
             "success": ("#1dd1a1", "#10ac84"),
             "normal": ("#576574", "#222f3e"),
-            "hex":    ("#a5b1c2", "#4b6584") 
+            "hex":    ("#a5b1c2", "#4b6584"),
+            "time":   ("#f368e0", "#d946ef"),
+            "info":   ("#48dbfb", "#0984e3")
         }
         display_text = "C" if text == "CLEAR" else text
 
         btn = ctk.CTkButton(
             self.button_frame,
-            text=display_text, 
+            text=display_text,
             corner_radius=8,
             font=("Inter", 18, "bold"),
             fg_color=colors.get(style, colors["normal"]),
-            # 关键：这里调用控制器的处理函数
-            command=lambda t=text: self.controller.handle_button_click(t) if self.controller else None
+            command=lambda: self.controller.handle_button_click(text) if self.controller else None
         )
         btn.grid(row=row, column=col, columnspan=colspan, padx=3, pady=3, sticky="nsew")

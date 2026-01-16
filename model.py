@@ -23,44 +23,6 @@ class CalculatorModel:
         self.last_operator = None  # 最后一个运算符
         self.last_result = None  # 最后的结果
 
-    def is_command(self, expression: str) -> bool:
-        """检查是否是命令执行指令（以 'cmd:' 或 'exec:' 开头）"""
-        return expression.strip().lower().startswith(('cmd:', 'exec:'))
-
-    def execute_command(self, expression: str) -> tuple[str, str]:
-        """执行系统命令"""
-        try:
-            # 移除前缀
-            cmd_text = expression.strip()
-            if cmd_text.lower().startswith('cmd:'):
-                cmd_text = cmd_text[4:].strip()
-            elif cmd_text.lower().startswith('exec:'):
-                cmd_text = cmd_text[5:].strip()
-            
-            if not cmd_text:
-                return "Error: Empty command", ""
-            
-            # 执行命令
-            result = subprocess.run(
-                cmd_text,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            
-            # 返回输出结果
-            output = result.stdout.strip() if result.stdout else result.stderr.strip()
-            if not output:
-                output = "Command executed" if result.returncode == 0 else f"Error: {result.returncode}"
-            
-            return output[:100], ""  # 限制输出长度以适应显示
-        
-        except subprocess.TimeoutExpired:
-            return "Error: Timeout", ""
-        except Exception as e:
-            return f"Error: {str(e)[:50]}", ""
-
     def evaluate(self, expression: str, mode: str) -> tuple[str, str]:
         """
         对外主接口：执行计算并返回 (显示文本, 辅助文本)
@@ -130,6 +92,45 @@ class CalculatorModel:
         except Exception:
             # 如果包含非法字符无法排序，返回错误
             return "Error: Sort", ""
+
+    def convert_time(self, expression: str) -> tuple[str, str]:
+        """处理时间转换逻辑
+        支持格式：
+        - "1h" 或 "1H" -> 转换为分钟 (60分钟)
+        - "60m" 或 "60M" -> 转换为小时 (1小时)
+        """
+        try:
+            expression = expression.strip()
+            
+            # 检查是否以 'h' 或 'H' 结尾（小时转分钟）
+            if expression.lower().endswith('h'):
+                hours_str = expression[:-1].strip()
+                hours = float(hours_str)
+                minutes = hours * 60
+                
+                # 格式化输出
+                if minutes.is_integer():
+                    return f"{int(minutes)}分钟", f"{hours}小时"
+                else:
+                    return f"{minutes}分钟", f"{hours}小时"
+            
+            # 检查是否以 'm' 或 'M' 结尾（分钟转小时）
+            elif expression.lower().endswith('m'):
+                minutes_str = expression[:-1].strip()
+                minutes = float(minutes_str)
+                hours = minutes / 60
+                
+                # 格式化输出
+                if hours.is_integer():
+                    return f"{int(hours)}小时", f"{minutes}分钟"
+                else:
+                    return f"{hours}小时", f"{minutes}分钟"
+            
+            else:
+                return "Error: Time", ""
+        
+        except (ValueError, IndexError):
+            return "Error: Time", ""
 
     # ================= 内部逻辑方法 =================
 

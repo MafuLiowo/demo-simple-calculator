@@ -19,10 +19,14 @@ class CalculatorController:
             self.mode = "Standard"
             self.view.resize_window(340, 520)
             self.view.setup_standard_buttons()
-        else:
+        elif new_mode_name == "程序员":
             self.mode = "Programmer"
             self.view.resize_window(500, 520)
             self.view.setup_programmer_buttons()
+        else:  # 时间模式
+            self.mode = "Time"
+            self.view.resize_window(340, 520)
+            self.view.setup_time_buttons()
 
     def handle_button_click(self, char):
         """处理所有按钮点击（按 '=' 时读取输入框内容计算）"""
@@ -46,9 +50,9 @@ class CalculatorController:
             if not expr or expr == "0":
                 return
             
-            # 处理命令执行后门（以 'cmd:' 或 'exec:' 开头）
-            if self.model.is_command(expr):
-                result_str, sub_label_str = self.model.execute_command(expr)
+            # 处理时间模式
+            if self.mode == "Time":
+                result_str, sub_label_str = self.model.convert_time(expr)
                 self.view.update_display(result_str, sub_label_str)
                 self.is_result_displayed = False
                 self.last_expression = None
@@ -114,6 +118,10 @@ class CalculatorController:
 
         # 2. 程序员模式禁用特定字符
         if self.mode == "Programmer" and char in ["."]:
+            return
+
+        # 2.5 时间模式禁用特定字符
+        if self.mode == "Time" and char in ["+-*/"]:
             return
 
         # 3. 将字符追加到输入框（如果当前为 "0" 则替换）
